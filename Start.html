@@ -158,25 +158,110 @@
         /* Основная область контента */
         #content {
             flex: 1;
-            padding: 0;
-            overflow: hidden;
+            padding: 40px;
+            overflow-y: auto;
             position: relative;
         }
 
         .file-content {
             display: none;
-            width: 100%;
-            height: 100%;
+            animation: fadeIn 0.5s ease;
         }
 
         .file-content.active {
             display: block;
         }
 
-        .file-content iframe {
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .file-title {
+            font-size: 32px;
+            color: #ff0000;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            animation: glitch 2s infinite;
+        }
+
+        .file-description {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #aaa;
+            margin-bottom: 40px;
+            max-width: 800px;
+        }
+
+        .file-description p {
+            margin-bottom: 20px;
+        }
+
+        .highlight {
+            color: #ff0000;
+            font-weight: bold;
+        }
+
+        /* Кнопка скачивания */
+        .download-btn {
+            background: #ff0000;
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .download-btn:hover:not(:disabled) {
+            background: #fff;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+
+        .download-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .download-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .download-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
             width: 100%;
             height: 100%;
-            border: none;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .download-btn:hover:not(:disabled)::before {
+            left: 100%;
+        }
+
+        /* Прогресс-бар на кнопке */
+        .download-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: #fff;
+            width: 0%;
+            transition: width 2s linear;
+        }
+
+        .download-btn.downloading .download-progress {
+            width: 100%;
         }
 
         /* Скроллбар */
@@ -290,12 +375,35 @@
             <div class="sidebar-header">
                 <h2>ФАЙЛОВАЯ СИСТЕМА</h2>
             </div>
-            <!-- Файлы будут добавлены через JS -->
+            <div class="file-item active" data-file="start">
+                <div class="file-icon"></div>
+                <div class="file-name">START</div>
+            </div>
         </div>
 
         <!-- Основная область -->
         <div id="content">
-            <!-- Контент файлов будет загружаться через iframe -->
+            <!-- Файл START -->
+            <div class="file-content active" id="file-start">
+                <h1 class="file-title">START</h1>
+                <div class="file-description">
+                    <p>Добро пожаловать в <span class="highlight">СИСТЕМУ</span>.</p>
+                    
+                    <p>Вы были выбраны для прохождения серии испытаний. Каждое испытание проверит ваши когнитивные способности, внимание к деталям и способность мыслить нестандартно.</p>
+                    
+                    <p>Ваша задача: пройти все <span class="highlight">15 уровней</span>, собранных в этом пакете. Каждый уровень содержит головоломку, которая потребует от вас различных навыков.</p>
+                    
+                    <p>Не всё то, чем кажется. Присматривайтесь к деталям. Иногда ответ скрыт там, где вы его не ожидаете.</p>
+                    
+                    <p>Уровень 1 готов к загрузке. Нажмите кнопку ниже, чтобы начать.</p>
+                    
+                    <p style="color: #ff0000; margin-top: 30px;">ПРЕДУПРЕЖДЕНИЕ: Обратного пути нет.</p>
+                </div>
+                <button class="download-btn" id="download-btn" data-level="1" onclick="downloadLevel()">
+                    СКАЧАТЬ УРОВЕНЬ 1
+                    <div class="download-progress"></div>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -317,7 +425,6 @@
             setTimeout(() => {
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('main-container').classList.add('visible');
-                initFiles();
             }, 1000);
         }, 3000);
 
@@ -330,45 +437,92 @@
         setInterval(updateTime, 1000);
         updateTime();
 
-        // Инициализация файлов
-        function initFiles() {
-            const sidebar = document.getElementById('sidebar');
-            const content = document.getElementById('content');
+        // Навигация по файлам
+        document.querySelectorAll('.file-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.file-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.file-content').forEach(c => c.classList.remove('active'));
+                
+                this.classList.add('active');
+                const fileId = this.dataset.file;
+                document.getElementById(`file-${fileId}`).classList.add('active');
+            });
+        });
 
-            // Создаем 15 файлов
-            for (let i = 1; i <= 15; i++) {
+        // Функция скачивания уровня с анимацией
+        function downloadLevel() {
+            const btn = document.getElementById('download-btn');
+            const levelNum = parseInt(btn.dataset.level);
+            
+            // Блокируем кнопку и запускаем анимацию
+            btn.disabled = true;
+            btn.classList.add('downloading');
+            btn.textContent = 'ЗАГРУЗКА...';
+            
+            // Добавляем прогресс-бар обратно
+            const progress = document.createElement('div');
+            progress.className = 'download-progress';
+            btn.appendChild(progress);
+            
+            // Имитируем скачивание (2 секунды)
+            setTimeout(() => {
+                // Добавляем файл в sidebar
+                addFileToSidebar(levelNum);
+
+                // Обновляем кнопку для следующего уровня
+                btn.dataset.level = levelNum + 1;
+                btn.disabled = false;
+                btn.classList.remove('downloading');
+                btn.textContent = `СКАЧАТЬ УРОВЕНЬ ${levelNum + 1}`;
+                
+                // Добавляем прогресс-бар обратно
+                const newProgress = document.createElement('div');
+                newProgress.className = 'download-progress';
+                btn.appendChild(newProgress);
+                
+            }, 2000);
+        }
+
+        // Добавление файла в sidebar
+        function addFileToSidebar(levelNum) {
+            const sidebar = document.getElementById('sidebar');
+            const existingFile = sidebar.querySelector(`[data-file="level_${levelNum}"]`);
+            
+            if (!existingFile) {
                 const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.dataset.file = `file_${i}`;
+                fileItem.className = 'file-item new';
+                fileItem.dataset.file = `level_${levelNum}`;
                 fileItem.innerHTML = `
                     <div class="file-icon"></div>
-                    <div class="file-name">FILE_${i}</div>
+                    <div class="file-name">LEVEL_${levelNum}</div>
                 `;
                 
                 fileItem.addEventListener('click', function() {
-                    document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
-                    document.querySelectorAll('.file-content').forEach(content => content.classList.remove('active'));
+                    document.querySelectorAll('.file-item').forEach(i => i.classList.remove('active'));
+                    document.querySelectorAll('.file-content').forEach(c => c.classList.remove('active'));
                     
                     this.classList.add('active');
                     const fileId = this.dataset.file;
-                    document.getElementById(fileId).classList.add('active');
+                    document.getElementById(`file-${fileId}`).classList.add('active');
                 });
                 
                 sidebar.appendChild(fileItem);
 
-                // Создаем iframe для каждого файла
+                // Создаем контент для нового файла с загадкой
+                const content = document.getElementById('content');
                 const fileContent = document.createElement('div');
                 fileContent.className = 'file-content';
-                fileContent.id = `file_${i}`;
-                fileContent.innerHTML = `<iframe src="DO NOT OPEN/puzzle_${i}.html"></iframe>`;
+                fileContent.id = `file-level_${levelNum}`;
+                fileContent.innerHTML = `
+                    <h1 class="file-title">LEVEL_${levelNum}</h1>
+                    <div class="file-description">
+                        <p>Уровень ${levelNum} загружен.</p>
+                        <p>Перед вами первая головоломка: <span class="highlight">ПАЗЛ</span>.</p>
+                        <p>Соберите изображение из фрагментов. Присмотритесь к деталям — не всё так просто, как кажется.</p>
+                        <p style="color: #666; font-size: 14px; margin-top: 30px;">[Здесь будет интерактивный пазл 10x10]</p>
+                    </div>
+                `;
                 content.appendChild(fileContent);
-            }
-
-            // Активируем первый файл
-            const firstFile = sidebar.querySelector('.file-item');
-            if (firstFile) {
-                firstFile.classList.add('active');
-                document.getElementById('file_1').classList.add('active');
             }
         }
     </script>
