@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYSTEM_ACCESS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Загрузочный экран */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 9999;
+            transition: opacity 1s ease;
+        }
+
+        .loading-text {
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 20px;
+            animation: glitch 1s infinite;
+        }
+
+        .loading-bar {
+            width: 300px;
+            height: 4px;
+            background: #333;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: #ff0000;
+            width: 0%;
+            animation: load 3s ease forwards;
+        }
+
+        @keyframes load {
+            to { width: 100%; }
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+        }
+
+        /* Основная структура */
+        #main-container {
+            display: none;
+            height: 100vh;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        #main-container.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* Боковая панель с файлами */
+        #sidebar {
+            width: 250px;
+            background: #0a0a0a;
+            border-right: 1px solid #333;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 14px;
+            color: #ff0000;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .file-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-item:hover {
+            background: #1a1a1a;
+            border-left-color: #ff0000;
+        }
+
+        .file-item.active {
+            background: #1a1a1a;
+            border-left-color: #ff0000;
+        }
+
+        .file-icon {
+            width: 16px;
+            height: 16px;
+            border: 1px solid #666;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .file-item.active .file-name {
+            color: #fff;
+        }
+
+        /* Анимация нового файла */
+        @keyframes fileAppear {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .file-item.new {
+            animation: fileAppear 0.5s ease;
+        }
+
+        /* Основная область контента */
+        #content {
+            flex: 1;
+            padding: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .file-content {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .file-content.active {
+            display: block;
+        }
+
+        .file-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Скроллбар */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff0000;
+        }
+
+        /* Декоративные элементы */
+        .corner-decoration {
+            position: fixed;
+            width: 50px;
+            height: 50px;
+            border: 2px solid #ff0000;
+            opacity: 0.3;
+        }
+
+        .corner-tl {
+            top: 20px;
+            left: 20px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .corner-tr {
+            top: 20px;
+            right: 20px;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .corner-bl {
+            bottom: 20px;
+            left: 20px;
+            border-right: none;
+            border-top: none;
+        }
+
+        .corner-br {
+            bottom: 20px;
+            right: 20px;
+            border-left: none;
+            border-top: none;
+        }
+
+        /* Статус бар */
+        #status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #0a0a0a;
+            border-top: 1px solid #333;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #ff0000;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Загрузочный экран -->
+    <div id="loading-screen">
+        <div class="loading-text">ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ...</div>
+        <div class="loading-bar">
+            <div class="loading-progress"></div>
+        </div>
+    </div>
+
+    <!-- Декоративные углы -->
+    <div class="corner-decoration corner-tl"></div>
+    <div class="corner-decoration corner-tr"></div>
+    <div class="corner-decoration corner-bl"></div>
+    <div class="corner-decoration corner-br"></div>
+
+    <!-- Основной контейнер -->
+    <div id="main-container">
+        <!-- Боковая панель -->
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <h2>ФАЙЛОВАЯ СИСТЕМА</h2>
+            </div>
+            <!-- Файлы будут добавлены через JS -->
+        </div>
+
+        <!-- Основная область -->
+        <div id="content">
+            <!-- Контент файлов будет загружаться через iframe -->
+        </div>
+    </div>
+
+    <!-- Статус бар -->
+    <div id="status-bar">
+        <div class="status-item">
+            <div class="status-dot"></div>
+            <span>СИСТЕМА АКТИВНА</span>
+        </div>
+        <div class="status-item">
+            <span id="current-time"></span>
+        </div>
+    </div>
+
+    <script>
+        // Загрузочный экран
+        setTimeout(() => {
+            document.getElementById('loading-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('main-container').classList.add('visible');
+                initFiles();
+            }, 1000);
+        }, 3000);
+
+        // Обновление времени
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('current-time').textContent = timeStr;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Инициализация файлов
+        function initFiles() {
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+
+            // Создаем 15 файлов
+            for (let i = 1; i <= 15; i++) {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.dataset.file = `file_${i}`;
+                fileItem.innerHTML = `
+                    <div class="file-icon"></div>
+                    <div class="file-name">FILE_${i}</div>
+                `;
+                
+                fileItem.addEventListener('click', function() {
+                    document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
+                    document.querySelectorAll('.file-content').forEach(content => content.classList.remove('active'));
+                    
+                    this.classList.add('active');
+                    const fileId = this.dataset.file;
+                    document.getElementById(fileId).classList.add('active');
+                });
+                
+                sidebar.appendChild(fileItem);
+
+                // Создаем iframe для каждого файла
+                const fileContent = document.createElement('div');
+                fileContent.className = 'file-content';
+                fileContent.id = `file_${i}`;
+                fileContent.innerHTML = `<iframe src="DO NOT OPEN/puzzle_${i}.html"></iframe>`;
+                content.appendChild(fileContent);
+            }
+
+            // Активируем первый файл
+            const firstFile = sidebar.querySelector('.file-item');
+            if (firstFile) {
+                firstFile.classList.add('active');
+                document.getElementById('file_1').classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
